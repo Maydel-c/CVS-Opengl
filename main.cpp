@@ -1,11 +1,12 @@
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <fstream>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -86,6 +87,7 @@ public:
   void Use() { glUseProgram(mId); }
 
   template <typename T> void SetValue(const std::string &name, const T &val) {
+
     unsigned int loc = glGetUniformLocation(mId, name.c_str());
 
     if constexpr (std::is_same_v<T, int>)
@@ -97,11 +99,11 @@ public:
     else if constexpr (std::is_same_v<T, glm::vec2>)
       glUniform2fv(loc, 1, glm::value_ptr(val));
     else if constexpr (std::is_same_v<T, glm::vec3>)
-      glUniformMatrix3fv(loc, 1, glm::value_ptr(val));
+      glUniform3fv(loc, 1, glm::value_ptr(val));
     else if constexpr (std::is_same_v<T, glm::mat4>)
-      glUniformMatrix4fv(loc, 1, GL_FLOAT, glm::value_ptr(val));
+      glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(val));
   }
-}
+};
 
 // callback methods
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
@@ -134,9 +136,12 @@ void UpdateWindow() { glfwGetWindowSize(window, &WIDTH, &HEIGHT); }
 int main(void) {
   glfwInit();
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
   window = glfwCreateWindow(WIDTH, HEIGHT, TITLE, NULL, NULL);
   glfwMakeContextCurrent(window);
@@ -152,7 +157,7 @@ int main(void) {
   unsigned int vbo;
   unsigned int vao;
 
-  glGenVertexArray(1, &vao);
+  glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
 
   glBindVertexArray(vao);
@@ -169,7 +174,7 @@ int main(void) {
 
   glBindVertexArray(0);
 
-  glfwSetFramebufferSizeCallbakc(window, framebuffer_size_callback);
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -187,7 +192,7 @@ int main(void) {
 
     shader.Use();
     shader.SetValue("model", model);
-    shader.SetValeu("view", view);
+    shader.SetValue("view", view);
     shader.SetValue("projection", projection);
 
     glBindVertexArray(vao);
@@ -199,8 +204,8 @@ int main(void) {
   glDeleteBuffers(1, &vbo);
   glDeleteVertexArrays(1, &vao);
 
+  glfwDestroyWindow(window);
   glfwTerminate();
-  glfwDestroy(window);
 
   return 0;
 }
