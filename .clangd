@@ -1,0 +1,8 @@
+CompileFlags:
+  Add: [-std=c++17,
+        -I/path/to/glad/include,
+        -I/path/to/glfw/include,
+        -I/path/to/glm]
+# Optional: silence unused-include warnings
+Diagnostics:
+  UnusedIncludes: None
