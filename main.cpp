@@ -11,9 +11,11 @@
 
 int WIDTH = 1920;
 int HEIGHT = 1013;
-
 const char *TITLE = "CVS: Definitive Edition";
 GLFWwindow *window = nullptr;
+
+float lastFrame = 0.0f;
+float dt = 0.0f;
 
 class Shader {
 private:
@@ -99,4 +101,106 @@ public:
     else if constexpr (std::is_same_v<T, glm::mat4>)
       glUniformMatrix4fv(loc, 1, GL_FLOAT, glm::value_ptr(val));
   }
+}
+
+// callback methods
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+  glViewport(0, 0, width, height);
+}
+
+bool IsKeyPressed(GLenum key) { return glfwGetKey(window, key) == GLFW_PRESS; }
+
+bool IsKeyReleased(GLenum key) {
+  return glfwGetKey(window, key) == GLFW_RELEASE;
+}
+
+void ProcessInput() {
+  if (IsKeyPressed(GLFW_KEY_ESCAPE))
+    glfwSetWindowShouldClose(window, true);
+  if (IsKeyPressed(GLFW_KEY_T))
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  else
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void UpdateTime() {
+  float currentFrame = (float)glfwGetTime();
+  dt = currentFrame - lastFrame;
+  lastFrame = currentFrame;
+}
+
+void UpdateWindow() { glfwGetWindowSize(window, &WIDTH, &HEIGHT); }
+
+int main(void) {
+  glfwInit();
+
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+  window = glfwCreateWindow(WIDTH, HEIGHT, TITLE, NULL, NULL);
+  glfwMakeContextCurrent(window);
+  gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+  float vertices[] = {
+      0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+
+      1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+  Shader shader("../vert.glsl", "../frag.glsl");
+
+  unsigned int vbo;
+  unsigned int vao;
+
+  glGenVertexArray(1, &vao);
+  glGenBuffers(1, &vbo);
+
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void *)(0));
+
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void *)(2 * sizeof(float)));
+
+  glBindVertexArray(0);
+
+  glfwSetFramebufferSizeCallbakc(window, framebuffer_size_callback);
+
+  while (!glfwWindowShouldClose(window)) {
+    glfwPollEvents();
+    UpdateTime();
+    UpdateWindow();
+    ProcessInput();
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::scale(model, glm::vec3((float)WIDTH, (float)HEIGHT, 1.0f));
+    glm::mat4 view = glm::mat4(1.0f);
+    glm::mat4 projection = glm::ortho(0.0f, (float)WIDTH, 0.0f, (float)HEIGHT);
+
+    shader.Use();
+    shader.SetValue("model", model);
+    shader.SetValeu("view", view);
+    shader.SetValue("projection", projection);
+
+    glBindVertexArray(vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    glfwSwapBuffers(window);
+  }
+  glDeleteBuffers(1, &vbo);
+  glDeleteVertexArrays(1, &vao);
+
+  glfwTerminate();
+  glfwDestroy(window);
+
+  return 0;
 }
